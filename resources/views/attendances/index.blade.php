@@ -8,7 +8,6 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <!-- Pesan Sukses atau Error -->
             @if (session('success'))
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg" role="alert">
                     <p class="font-bold">Sukses</p>
@@ -22,7 +21,6 @@
                 </div>
             @endif
 
-            <!-- KARTU STATISTIK -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
                     <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Catatan Absensi</h3>
@@ -39,39 +37,44 @@
                 </div>
             </div>
 
-            <!-- KARTU FILTER DAN AKSI -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form action="{{ route('attendances.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <!-- Input Pencarian -->
-                        <div class="md:col-span-2">
-                            <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cari Nama / No. Personal</label>
-                            <input type="text" name="search" id="search" placeholder="Ketik di sini..." value="{{ request('search') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <form action="{{ route('attendances.index') }}" method="GET">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cari Nama / No. Personal</label>
+                                <input type="text" name="search" id="search" placeholder="Ketik di sini..." value="{{ request('search') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="attendance_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipe Kehadiran</label>
+                                <select name="attendance_type" id="attendance_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Semua Tipe</option>
+                                    @foreach ($attendanceTypes as $type)
+                                        <option value="{{ $type->attendance_type }}" {{ request('attendance_type') == $type->attendance_type ? 'selected' : '' }}>
+                                            {{ $type->attendance_type }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Filter Tanggal Mulai</label>
+                                <input type="date" name="filter_date" id="filter_date" value="{{ request('filter_date') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
                         </div>
-                        <!-- Dropdown Filter Tipe -->
-                         <div class="md:col-span-2">
-                            <label for="attendance_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Filter Tipe Kehadiran</label>
-                            <select name="attendance_type" id="attendance_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">Semua Tipe</option>
-                                @foreach ($attendanceTypes as $type)
-                                    <option value="{{ $type->attendance_type }}" {{ request('attendance_type') == $type->attendance_type ? 'selected' : '' }}>
-                                        {{ $type->attendance_type }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <!-- Tombol Aksi Filter -->
-                        <div class="flex items-center space-x-2">
-                            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">Filter</button>
-                            <a href="{{ route('attendances.index') }}" class="inline-flex justify-center items-center p-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white hover:bg-gray-700" title="Reset Filter">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16"/></svg>
+
+                        <div class="flex justify-end items-center mt-4 space-x-3">
+                            <a href="{{ route('attendances.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700" title="Reset Filter">
+                                Reset
                             </a>
+                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Terapkan Filter
+                            </button>
                         </div>
-                    </form>
+                        </form>
                 </div>
             </div>
 
-            <!-- KARTU TABEL DATA UTAMA -->
+
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="flex justify-between items-center mb-4">
@@ -132,7 +135,6 @@
                             </tbody>
                         </table>
                     </div>
-                    <!-- Paginasi -->
                     <div class="mt-4">
                         {{ $attendances->links() }}
                     </div>
@@ -142,7 +144,6 @@
         </div>
     </div>
 
-    <!-- Modal untuk Import (Hidden by default) -->
     <div id="import-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" aria-hidden="true">
@@ -168,4 +169,3 @@
         </div>
     </div>
 </x-app-layout>
-

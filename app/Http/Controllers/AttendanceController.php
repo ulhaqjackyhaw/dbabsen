@@ -6,7 +6,7 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AttendancesImport;
-use Illuminate\Support\Facades\DB; // <-- Tambahkan ini
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -26,15 +26,21 @@ class AttendanceController extends Controller
             });
         }
 
-        // 2. Logika Filter
+        // 2. Logika Filter Tipe Kehadiran
         if ($request->filled('attendance_type')) {
             $query->where('attendance_type', $request->input('attendance_type'));
+        }
+
+        // 3. LOGIKA FILTER TANGGAL MULAI SPESIFIK (YANG DIPERBARUI)
+        if ($request->filled('filter_date')) {
+            // Menggunakan whereDate untuk mencocokkan tanggal secara persis tanpa memperhatikan jam/menit/detik
+            $query->whereDate('start_date', $request->input('filter_date'));
         }
 
         // Ambil data untuk ditampilkan di tabel (dengan paginasi)
         $attendances = $query->latest()->paginate(15)->withQueryString();
 
-        // 3. Ambil data untuk statistik
+        // Ambil data untuk statistik
         $stats = [
             'total_records' => Attendance::count(),
             'unique_employees' => Attendance::distinct('personal_number')->count(),
@@ -44,26 +50,19 @@ class AttendanceController extends Controller
                                         ->first(),
         ];
 
-        // 4. Ambil semua tipe kehadiran unik untuk dropdown filter
+        // Ambil semua tipe kehadiran unik untuk dropdown filter
         $attendanceTypes = Attendance::select('attendance_type')->distinct()->orderBy('attendance_type')->get();
 
         return view('attendances.index', compact('attendances', 'stats', 'attendanceTypes'));
     }
-    
-    // ... (Fungsi store, create, edit, update, destroy tetap sama)
-    // ... (Pastikan fungsi-fungsi ini sudah ada di file Anda)
 
-    /**
-     * Menampilkan form untuk membuat data baru (CREATE page).
-     */
+    // ... (Fungsi store, create, edit, update, destroy, dan import tidak berubah)
+
     public function create()
     {
         return view('attendances.create');
     }
 
-    /**
-     * Menyimpan data baru ke database (CREATE logic).
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -74,24 +73,15 @@ class AttendanceController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'days' => 'required|integer',
         ]);
-
         Attendance::create($request->all());
-
-        return redirect()->route('attendances.index')
-                         ->with('success', 'Data kehadiran berhasil ditambahkan.');
+        return redirect()->route('attendances.index')->with('success', 'Data kehadiran berhasil ditambahkan.');
     }
 
-    /**
-     * Menampilkan form untuk mengedit data (UPDATE page).
-     */
     public function edit(Attendance $attendance)
     {
         return view('attendances.edit', compact('attendance'));
     }
 
-    /**
-     * Mengupdate data di database (UPDATE logic).
-     */
     public function update(Request $request, Attendance $attendance)
     {
         $request->validate([
@@ -102,33 +92,21 @@ class AttendanceController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'days' => 'required|integer',
         ]);
-
         $attendance->update($request->all());
-
-        return redirect()->route('attendances.index')
-                         ->with('success', 'Data kehadiran berhasil diperbarui.');
+        return redirect()->route('attendances.index')->with('success', 'Data kehadiran berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus data dari database (DELETE logic).
-     */
     public function destroy(Attendance $attendance)
     {
         $attendance->delete();
-
-        return redirect()->route('attendances.index')
-                         ->with('success', 'Data kehadiran berhasil dihapus.');
+        return redirect()->route('attendances.index')->with('success', 'Data kehadiran berhasil dihapus.');
     }
     
-    /**
-     * Logika untuk import dari file Excel atau CSV.
-     */
     public function import(Request $request)
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
         ]);
-
         try {
             Attendance::truncate();
             Excel::import(new AttendancesImport, $request->file('file'));
@@ -138,4 +116,3 @@ class AttendanceController extends Controller
         }
     }
 }
-
