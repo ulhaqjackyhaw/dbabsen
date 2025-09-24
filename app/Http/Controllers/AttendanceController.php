@@ -31,13 +31,12 @@ class AttendanceController extends Controller
             $query->where('attendance_type', $request->input('attendance_type'));
         }
 
-        // 3. LOGIKA FILTER TANGGAL MULAI SPESIFIK (YANG DIPERBARUI)
+        // 3. Logika Filter Tanggal Mulai
         if ($request->filled('filter_date')) {
-            // Menggunakan whereDate untuk mencocokkan tanggal secara persis tanpa memperhatikan jam/menit/detik
             $query->whereDate('start_date', $request->input('filter_date'));
         }
 
-        // Ambil data untuk ditampilkan di tabel (dengan paginasi)
+        // Ambil data untuk tabel (dengan paginasi)
         $attendances = $query->latest()->paginate(15)->withQueryString();
 
         // Ambil data untuk statistik
@@ -49,14 +48,26 @@ class AttendanceController extends Controller
                                         ->orderBy('total', 'desc')
                                         ->first(),
         ];
+        
+        // === PERUBAHAN DI SINI ===
+        // Ambil data, kelompokkan berdasarkan tipe, hitung total, dan urutkan dari terbesar.
+        $chartData = Attendance::query()
+            ->select('attendance_type', DB::raw('count(*) as total'))
+            ->groupBy('attendance_type')
+            ->orderBy('total', 'desc')
+            // ->limit(7) // <-- BARIS INI DIHAPUS
+            ->get();
+        // === AKHIR PERUBAHAN ===
+
 
         // Ambil semua tipe kehadiran unik untuk dropdown filter
         $attendanceTypes = Attendance::select('attendance_type')->distinct()->orderBy('attendance_type')->get();
 
-        return view('attendances.index', compact('attendances', 'stats', 'attendanceTypes'));
+        // Kirim semua data ke view, termasuk $chartData
+        return view('attendances.index', compact('attendances', 'stats', 'attendanceTypes', 'chartData'));
     }
 
-    // ... (Fungsi store, create, edit, update, destroy, dan import tidak berubah)
+    // ... (Fungsi-fungsi lain tidak berubah)
 
     public function create()
     {

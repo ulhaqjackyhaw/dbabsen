@@ -21,19 +21,38 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Catatan Absensi</h3>
-                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['total_records']) }}</p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Catatan Absensi</h3>
+                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['total_records']) }}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Jumlah Karyawan</h3>
+                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['unique_employees']) }}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Absensi Paling Umum</h3>
+                        <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100 truncate">{{ $stats['top_attendance_type']->attendance_type ?? 'N/A' }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ number_format($stats['top_attendance_type']->total ?? 0) }} kasus</p>
+                    </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Jumlah Karyawan</h3>
-                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{{ number_format($stats['unique_employees']) }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Absensi Paling Umum</h3>
-                    <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100 truncate">{{ $stats['top_attendance_type']->attendance_type ?? 'N/A' }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ number_format($stats['top_attendance_type']->total ?? 0) }} kasus</p>
+
+                <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Tipe Kehadiran
+                    </h3>
+                    
+                    @php
+                        $barCount = $chartData->count();
+                        $dynamicHeight = max(384, $barCount * 35); 
+                    @endphp
+
+                    <div class="relative h-96 overflow-y-auto">
+                        <div style="height: {{ $dynamicHeight }}px;">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -70,13 +89,13 @@
                                 Terapkan Filter
                             </button>
                         </div>
-                        </form>
+                    </form>
                 </div>
             </div>
 
 
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
+                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                             Daftar Data Kehadiran
@@ -86,7 +105,6 @@
                             <a href="{{ route('attendances.create') }}" class="px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700">+ Data Baru</a>
                         </div>
                     </div>
-
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-900">
@@ -103,7 +121,7 @@
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 @forelse ($attendances as $index => $attendance)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <tr>
                                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $attendances->firstItem() + $index }}</td>
                                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $attendance->personal_number }}</td>
                                         <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ $attendance->name }}</td>
@@ -145,27 +163,66 @@
     </div>
 
     <div id="import-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form action="{{ route('attendances.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Import File Excel</h3>
-                        <div class="mt-2">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Pilih file .xlsx atau .csv. Data yang ada di tabel akan dihapus dan digantikan dengan data dari file ini.</p>
-                            <input type="file" name="file" class="mt-4 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 dark:file:bg-violet-900 file:text-violet-700 dark:file:text-violet-300 hover:file:bg-violet-100" required>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">Import</button>
-                        <button type="button" onclick="document.getElementById('import-modal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Batal</button>
-                    </div>
-                </form>
-            </div>
         </div>
-    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <script>
+        Chart.register(ChartDataLabels);
+
+        const chartRawData = @json($chartData);
+        const chartLabels = chartRawData.map(item => item.attendance_type);
+        const chartValues = chartRawData.map(item => item.total);
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const attendanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Jumlah Kasus',
+                    data: chartValues,
+                    backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    // === PERUBAHAN UTAMA PADA KONFIGURASI LABEL ===
+                    datalabels: {
+                        anchor: 'end',
+                        // 'end' akan meratakan teks ke KANAN di dalam batang
+                        align: 'end',
+                        color: '#000000',
+                        font: {
+                            weight: 'bold',
+                        },
+                        // offset positif akan memberi jarak dari ujung kanan batang
+                        offset: 8, 
+                    }
+                    // === AKHIR PERUBAHAN ===
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: document.body.classList.contains('dark') ? '#CBD5E1' : '#6B7280'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: document.body.classList.contains('dark') ? '#CBD5E1' : '#6B7280'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </x-app-layout>
