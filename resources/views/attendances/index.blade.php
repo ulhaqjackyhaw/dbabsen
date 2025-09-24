@@ -1,7 +1,7 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard Analitik Kehadiran') }}
+<x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight text-center">
+            {{ __('Dashboard Kehadiran') }}
         </h2>
     </x-slot>
 
@@ -11,13 +11,13 @@
             @if (session('success'))
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg" role="alert">
                     <p class="font-bold">Sukses</p>
-                    <p>{{ session('success') }}</p>
+                    <p>{!! session('success') !!}</p>
                 </div>
             @endif
             @if (session('error'))
                  <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
                     <p class="font-bold">Terjadi Kesalahan</p>
-                    <p>{{ session('error') }}</p>
+                    <p>{!! session('error') !!}</p>
                 </div>
             @endif
 
@@ -101,8 +101,8 @@
                             Daftar Data Kehadiran
                         </h3>
                         <div class="flex space-x-2">
-                            <button onclick="document.getElementById('import-modal').classList.remove('hidden')" class="px-4 py-2 bg-gray-800 dark:bg-gray-200 dark:text-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">Import Excel</button>
-                            <a href="{{ route('attendances.create') }}" class="px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700">+ Data Baru</a>
+                            <button onclick="document.getElementById('import-modal').classList.remove('hidden')" class="px-4 py-2 bg-gray-800 dark:bg-gray-200 dark:text-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">Ganti Data</button>
+                            <a href="{{ route('attendances.create') }}" class="px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700">+ Manual</a>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -162,8 +162,36 @@
         </div>
     </div>
 
-    <div id="import-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+    <div id="import-modal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="document.getElementById('import-modal').classList.add('hidden')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form action="{{ route('attendances.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title">
+                            Upload File Excel
+                        </h3>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                               Pilih file dengan format .xlsx atau .csv. Data yang ada akan dihapus dan diganti dengan data dari file ini.
+                            </p>
+                            <input type="file" name="file" id="file" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-gray-700 dark:file:text-gray-300 file:text-indigo-700 hover:file:bg-indigo-100">
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">
+                            Impor
+                        </button>
+                        <button type="button" onclick="document.getElementById('import-modal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-500 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -195,30 +223,26 @@
                     legend: {
                         display: false
                     },
-                    // === PERUBAHAN UTAMA PADA KONFIGURASI LABEL ===
                     datalabels: {
                         anchor: 'end',
-                        // 'end' akan meratakan teks ke KANAN di dalam batang
                         align: 'end',
-                        color: '#000000',
+                        color: document.documentElement.classList.contains('dark') ? '#FFFFFF' : '#374151',
                         font: {
                             weight: 'bold',
                         },
-                        // offset positif akan memberi jarak dari ujung kanan batang
-                        offset: 8, 
+                        offset: 4, 
                     }
-                    // === AKHIR PERUBAHAN ===
                 },
                 scales: {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            color: document.body.classList.contains('dark') ? '#CBD5E1' : '#6B7280'
+                            color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#6b7280'
                         }
                     },
                     y: {
                         ticks: {
-                            color: document.body.classList.contains('dark') ? '#CBD5E1' : '#6B7280'
+                            color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#6b7280'
                         }
                     }
                 }

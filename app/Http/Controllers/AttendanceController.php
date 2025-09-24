@@ -7,17 +7,14 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\AttendancesImport;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class AttendanceController extends Controller
 {
-    /**
-     * Menampilkan dashboard dengan filter, pencarian, dan statistik.
-     */
     public function index(Request $request)
     {
         $query = Attendance::query();
 
-        // 1. Logika Pencarian
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -26,48 +23,34 @@ class AttendanceController extends Controller
             });
         }
 
-        // 2. Logika Filter Tipe Kehadiran
         if ($request->filled('attendance_type')) {
             $query->where('attendance_type', $request->input('attendance_type'));
         }
 
-        // 3. Logika Filter Tanggal Mulai
         if ($request->filled('filter_date')) {
             $query->whereDate('start_date', $request->input('filter_date'));
         }
 
-        // Ambil data untuk tabel (dengan paginasi)
         $attendances = $query->latest()->paginate(15)->withQueryString();
 
-        // Ambil data untuk statistik
         $stats = [
             'total_records' => Attendance::count(),
             'unique_employees' => Attendance::distinct('personal_number')->count(),
             'top_attendance_type' => Attendance::select('attendance_type', DB::raw('count(*) as total'))
-                                        ->groupBy('attendance_type')
-                                        ->orderBy('total', 'desc')
-                                        ->first(),
+                ->groupBy('attendance_type')
+                ->orderBy('total', 'desc')
+                ->first(),
         ];
-        
-        // === PERUBAHAN DI SINI ===
-        // Ambil data, kelompokkan berdasarkan tipe, hitung total, dan urutkan dari terbesar.
-        $chartData = Attendance::query()
-            ->select('attendance_type', DB::raw('count(*) as total'))
+
+        $chartData = Attendance::select('attendance_type', DB::raw('count(*) as total'))
             ->groupBy('attendance_type')
             ->orderBy('total', 'desc')
-            // ->limit(7) // <-- BARIS INI DIHAPUS
             ->get();
-        // === AKHIR PERUBAHAN ===
+            
+        $attendanceTypes = Attendance::select('attendance_type')->distinct()->get();
 
-
-        // Ambil semua tipe kehadiran unik untuk dropdown filter
-        $attendanceTypes = Attendance::select('attendance_type')->distinct()->orderBy('attendance_type')->get();
-
-        // Kirim semua data ke view, termasuk $chartData
-        return view('attendances.index', compact('attendances', 'stats', 'attendanceTypes', 'chartData'));
+        return view('attendances.index', compact('attendances', 'stats', 'chartData', 'attendanceTypes'));
     }
-
-    // ... (Fungsi-fungsi lain tidak berubah)
 
     public function create()
     {
@@ -115,15 +98,23 @@ class AttendanceController extends Controller
     
     public function import(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv',
-        ]);
+        $request->validate(['file' => 'required|mimes:xlsx,xls,csv']);
+
         try {
             Attendance::truncate();
             Excel::import(new AttendancesImport, $request->file('file'));
-            return redirect()->route('attendances.index')->with('success', 'Data berhasil diimpor dari file Excel.');
+            return redirect()->route('attendances.index')->with('success', 'Data berhasil diimpor!');
+
+        } catch (ValidationException $e) {
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = 'Baris ' . $failure->row() . ': ' . implode(', ', $failure->errors());
+            }
+            return redirect()->route('attendances.index')->with('error', 'Gagal impor, data tidak valid: <br>- ' . implode('<br>- ', $errorMessages));
+        
         } catch (\Exception $e) {
-            return redirect()->route('attendances.index')->with('error', 'Terjadi kesalahan saat impor: ' . $e->getMessage());
+            return redirect()->route('attendances.index')->with('error', 'Terjadi kesalahan. Pastikan header kolom di file Excel sudah benar. Pesan: ' . $e->getMessage());
         }
     }
 }
